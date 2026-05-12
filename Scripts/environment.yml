@@ -17,12 +17,10 @@ dependencies:
   - tqdm
   - pip
 
-  # PyTorch (GPU version handled automatically where possible)
   - pytorch
   - torchvision
   - torchaudio
 
-  # pip-only packages
   - pip:
       - cellpose
       - aicspylibczi

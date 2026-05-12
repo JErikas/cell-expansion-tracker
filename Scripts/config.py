@@ -4,8 +4,6 @@ from pathlib import Path
 # =======================
 # DYNAMIC PATHS
 # =======================
-# Dynamically resolves the base directory based on where this config.py is located.
-# It assumes config.py is inside the 'Scripts' folder.
 SCRIPTS_DIR_PATH = Path(__file__).resolve().parent
 BASE_DIR_PATH = SCRIPTS_DIR_PATH.parent
 
@@ -20,38 +18,45 @@ PROCESSED_DATA_DIR = str(BASE_DIR_PATH / "Processed_Data")
 TARGET_EXP_FOLDER = "2026-05-09 EP"
 
 # =======================
-# MICROSCOPY SETTINGS
+# MEDIA CONDITIONS 
 # =======================
-MICRONS_PER_PIXEL = 0.2738
-CHANNEL_CELL_INDEX = 0
+# Keys must be lowercase strings to look for in folder names.
+# Values are the readable labels that will appear in your CSVs and Plots.
+MEDIA_CONDITIONS = {
+    "sn": "Supplemented_Media",
+    "std": "Standard_Media"
+    # You can easily add more here, e.g., "drugx": "Drug_X_Treatment"
+}
+DEFAULT_MEDIA_NAME = "Unknown_Media"
 
 # =======================
-# FRAME SAMPLING
+# MICROSCOPY SETTINGS
 # =======================
+FALLBACK_MICRONS_PER_PIXEL = 0.1369048
+CHANNEL_CELL_INDEX = 0
 NUM_INTERMEDIATE_FRAMES = 5
 
 # =======================
-# CELLPOSE SETTINGS
+# CELLPOSE MODEL SETTINGS
 # =======================
+USE_CUSTOM_CELLPOSE_MODEL = False
+CUSTOM_MODEL_FILENAME = "my_custom_model_file" 
+BUILTIN_MODEL_NAME = "cyto3"
 CELLPOSE_DIAMETER = 130
 
 # =======================
-# TRACKING
+# TRACKING SETTINGS
 # =======================
 MAX_TRACKING_DISTANCE_PX = 60
 
 # =======================
-# OVERLAYS
+# OVERLAY SETTINGS
 # =======================
 SAVE_TRACKED_OVERLAYS = True
 OVERLAY_OPACITY = 0.35
 
 # =======================
-# BORDER FILTERING
+# BORDER FILTERING SETTINGS
 # =======================
-# Remove masks touching image border
 REMOVE_BORDER_OBJECTS = True
-
-# Distance from image edge in pixels
-# Any mask touching this border region is removed
 BORDER_MARGIN_PX = 10

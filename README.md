@@ -1,153 +1,189 @@
-# Cell Timelapse Analysis Pipeline
+# Cell Expansion Tracker Pipeline
 
-Welcome to the Cell Timelapse Analysis Pipeline. This automated tool takes raw microscopy data (CZI format), extracts frames, segments cells using AI (Cellpose), tracks individual cells over time, and generates statistical plots and visual overlays to analyze cell area expansion (e.g., after electroporation).
+This automated pipeline processes raw CZI microscopy data to extract frames, segment cells using Cellpose, track individual cells across a timelapse, and plot their physical expansion.
 
----
+## 1. Project Folder Structure
 
-## 📂 1. Project Folder Structure
-
-For the pipeline to work correctly, your project folder must be organized exactly like this:
+Ensure your project is organized as follows:
 
 ```text
-Your_Project_Folder/
+Cell_Expansion_Tracker/
 │
-├── Models/                # (Optional) Stores any custom Cellpose models if needed later
+├── Models/                # Place custom Cellpose model files here
 ├── Processed_Data/        # Pipeline outputs will be saved here automatically
 ├── Raw_Data/              # Place your raw .czi experiment folders here
-│   └── 2026-05-09 EP/     # Example Experiment Folder containing .czi files
+│   └── 2026-05-09 EP/     # Example Experiment Folder
 │
 └── Scripts/               # Pipeline scripts and environment files
     ├── config.py
     ├── 0_run_pipeline.py
-    ├── 1_convert_czi.py
-    ├── 2_segment_cellpose.py
-    ├── 3_analyze_tracking.py
-    ├── 4_generate_overlays.py
-    ├── 5_plot_expansion.py
-    ├── environment.yml
-    ├── run_pipeline.bat   # Launcher for Windows
-    └── run_pipeline.sh    # Launcher for Mac/Linux
+    ├── ... (other scripts)
+
 ```
+## 2. One-Time Setup and Installation
 
----
-
-## 🛠️ 2. One-Time Setup & Installation
-
-The pipeline runs on Python and requires specific scientific libraries. To manage these easily without breaking your computer, we use **Miniconda**.
+This pipeline requires **Miniconda** (a lightweight version of Python and the Conda package manager) to manage the necessary biological imaging libraries.
 
 ### Step 1: Install Miniconda
-1. Go to the [Miniconda Download Page](https://docs.conda.io/en/latest/miniconda.html).
-2. Download and install the version for your Operating System (Windows, Mac, or Linux).
-3. **Windows Users:** During installation, it is highly recommended to select **"Add Miniconda3 to my PATH environment variable"** (even if it shows in red) OR ensure you always use the "Anaconda Prompt" from your Start menu.
 
-### Step 2: Install the Environment
-You only need to do this **once** on your computer.
+#### **For Windows:**
 
-**For Windows:**
-1. Open the **Anaconda Prompt** (or Command Prompt if added to PATH).
-2. Navigate to your Scripts folder using the `cd` command. For example:
-   ```cmd
-   cd C:\Users\Name\Desktop\Anusiya\Scripts
-   ```
-3. Create the environment:
-   ```cmd
-   conda env create -f environment.yml
-   ```
+1. Download the **Miniconda Windows 64-bit installer** from the [Official Download Page](https://docs.conda.io/en/latest/miniconda.html).
+2. Run the `.exe` installer.
+3. **Important:** During installation, it is highly recommended to check the box **"Add Miniconda3 to my PATH environment variable"**. This allows the `.bat` launcher to find Python automatically.
+4. If you did NOT add it to PATH, you must run all commands via the **"Anaconda Prompt"** found in your Start Menu.
 
-**For Mac / Linux:**
-1. Open the **Terminal**.
-2. Navigate to your Scripts folder:
-   ```bash
-   cd ~/Desktop/Anusiya/Scripts
-   ```
-3. Create the environment:
-   ```bash
-   conda env create -f environment.yml
-   ```
+#### **For macOS / Linux:**
 
-*(Note: This step may take 5–15 minutes as it downloads heavy AI libraries like PyTorch and Cellpose).*
-
----
-
-## 🚀 3. Tutorial: Running a New Experiment
-
-Follow these steps every time you have a new batch of data to process.
-
-### Step 1: Add Raw Data
-Create a new folder inside `Raw_Data/` and name it appropriately (e.g., `2026-05-09 EP`). Place all your raw `.czi` files inside this new folder. 
-*Note: The script attempts to read the date from the first 10 characters of the folder name (e.g., `2026-05-09`).*
-
-### Step 2: Update Configuration
-Open `Scripts/config.py` in any text editor (like Notepad, TextEdit, or VS Code). 
-Find the `TARGET_EXP_FOLDER` variable and change it to exactly match your new folder's name:
-
-```python
-# =======================
-# CURRENT EXPERIMENT
-# =======================
-TARGET_EXP_FOLDER = "2026-05-09 EP" # <--- Change this to your new folder name
+1. Download the **Miniconda installer script** (`.sh` file) for your architecture (Intel or Apple M-series).
+2. Open your Terminal and navigate to your Downloads folder:
+```bash
+cd ~/Downloads
 ```
-Save and close `config.py`.
 
-### Step 3: Launch the Pipeline
 
-**If you are on Windows:**
-Simply go to the `Scripts/` folder and **double-click** `run_pipeline.bat`. A black terminal window will open, activate the environment, and run the whole process automatically.
 
-**If you are on Mac / Linux:**
-1. Open your Terminal.
-2. Navigate to the Scripts folder:
-   ```bash
-   cd path/to/Your_Project_Folder/Scripts
-   ```
-3. *(First time only)* Make the script executable:
-   ```bash
-   chmod +x run_pipeline.sh
-   ```
-4. Run the script:
-   ```bash
-   ./run_pipeline.sh
-   ```
+
+3. Run the installer script:
+
+```bash
+bash Miniconda3-latest-MacOSX-arm64.sh  # (Example filename)
+```
+
+4. Follow the prompts. When asked "Do you wish the installer to initialize Miniconda3?", type **yes**.
+5. Restart your Terminal for the changes to take effect.
 
 ---
 
-## ⚙️ 4. Configuration Guide (`config.py`)
+### Step 2: Create the Environment
 
-You can tweak how the pipeline behaves by editing the values in `Scripts/config.py`:
+Once Miniconda is installed, you need to install the specific libraries (Cellpose, Tifffile, etc.) required for this pipeline.
 
-| Setting | What it does |
-| :--- | :--- |
-| `MICRONS_PER_PIXEL` | Converts pixel measurements to real-world micrometers (µm). Update this if you change your microscope's objective/magnification. |
-| `NUM_INTERMEDIATE_FRAMES` | How many frames to extract between the first and last frame of the CZI file. If set to `5`, the pipeline extracts 7 frames total (Start + 5 Intermediate + End). |
-| `CELLPOSE_DIAMETER` | The expected average size of the cells in pixels. Increasing this helps detect larger cells; decreasing detects smaller ones. |
-| `MAX_TRACKING_DISTANCE_PX` | The maximum distance (in pixels) a cell can move between frames and still be considered the same cell. |
-| `REMOVE_BORDER_OBJECTS` | Set to `True` to delete cells that touch the edges of the image (prevents analyzing partially cut-off cells). |
-| `SAVE_TRACKED_OVERLAYS` | Set to `True` to generate visualization images showing colored masks layered over the raw cells. |
+#### **For Windows:**
 
----
+1. Open the **Command Prompt** (or Anaconda Prompt).
+2. Navigate to your project's `Scripts` folder:
+```cmd
+cd /d C:\Path\To\Your\Cell_Expansion_Tracker\Scripts
+```
 
-## 📊 5. Understanding Your Outputs
 
-Once the terminal says **"PIPELINE COMPLETE!"**, go to the `Processed_Data/` folder. You will find a new folder named after your experiment date (e.g., `20260509_Timelapse`). Inside are five numbered folders:
+3. Create the environment:
+```cmd
+conda env create -f environment.yml
+```
 
-1. **`1_tif_images/`**: The raw `.czi` files split into individual `.tif` frames.
-2. **`2_masks/`**: The raw black-and-white segmentation results from Cellpose.
-3. **`3_tracked_masks/`**: The cleaned masks. Here, the pipeline has assigned a unique ID (color value) to each cell. The cell maintains this ID across all frames.
-4. **`4_results/`**: The numerical and statistical core of the pipeline:
-   * **`..._Image_Averages.csv`**: A spreadsheet summarizing the average area change per image/condition.
-   * **`..._Single_Cells_Tracking.csv`**: A detailed spreadsheet showing the Area at T0, Area at Final Time, and Percentage Change for *every single tracked cell*.
-   * **`.png` Plots**: Automatically generated Bar charts and Violin plots visualizing your data distribution.
-5. **`5_tracked_overlays/`**: Beautiful colored visual overlays. Watch these as an image sequence to visually verify that the AI correctly tracked the cells over time.
+#### **For macOS / Linux:**
 
----
+1. Open the **Terminal**.
+2. Navigate to your project's `Scripts` folder:
+```bash
+cd ~/Path/To/Your/Cell_Expansion_Tracker/Scripts
+```
 
-## ❓ 6. Troubleshooting
 
-* **"Conda is not recognized as an internal or external command" (Windows)** 
-  *miniconda wasn't added to your system PATH. Reinstall Miniconda and check the box "Add to PATH", or run the `.bat` file directly from the "Anaconda Prompt" instead of standard CMD.*
-* **"Permission Denied" (Mac/Linux)**
-  *You need to make the launcher executable. Run `chmod +x run_pipeline.sh` in the terminal.*
-* **Cells are being mis-segmented**
-  *Open `config.py` and adjust the `CELLPOSE_DIAMETER`. You can also tweak the `CHANNEL_CELL_INDEX` if your CZI channels are ordered differently.*
-* **Pipeline crashes at "Tracking"**
-  *This usually happens if cells move too fast between frames. Try increasing `MAX_TRACKING_DISTANCE_PX` in `config.py`.*
+3. Create the environment:
+```bash
+conda env create -f environment.yml
+```
+
+
+
+
+4. Give the launcher script permission to run:
+```bash
+chmod +x run_pipeline.sh
+```
+
+## 3. Data Formatting Requirements
+
+The pipeline automatically reads experimental conditions from your folder names.
+
+### Metadata Extraction Rules
+
+* **Experiment Date**: The main experiment folder must begin with a 10-character date (`YYYY-MM-DD`).
+* **Voltage**: The folder name must contain a number followed by **kV** (case-insensitive). Decimals (`.`) or commas (`,`) are both accepted.
+* **Media Type**: The script searches for keywords defined in your `config.py` (e.g., `sn` or `std`).
+
+### Examples of Perfectly Formatted Directories:
+
+1. Raw_Data/**2026-05-09**/**STD** **1.5kV**/202609210844-01.czi
+2. Raw_Data/**2026-05-09** EP/STD **SN** EP/**4,2 KV**-CM-8HV/2026-05-09/202609210552-01.czi
+
+*Note: The **bolded features are necessary** for the script to correctly extract the experiment date, media type, and voltage.*
+
+## 4. Configuration Variables Guide (`config.py`)
+
+All settings are managed in `Scripts/config.py`. Below is an explanation of every parameter.
+
+### Paths & Experiment
+
+* `TARGET_EXP_FOLDER`: The exact name of your main experiment folder in `Raw_Data/`.
+* `RAW_DATA_DIR` / `PROCESSED_DATA_DIR`: Automatically calculated paths for input and output.
+
+### Media Conditions
+
+* `MEDIA_CONDITIONS`: A dictionary mapping folder keywords to readable labels.
+* *Example*: `"sn": "Supplemented_Media"` means any folder containing "sn" will be labeled "Supplemented Media" in results.
+
+
+* `DEFAULT_MEDIA_NAME`: The label used if no keywords from `MEDIA_CONDITIONS` are found in the folder path.
+
+### Microscopy Settings
+
+* `FALLBACK_MICRONS_PER_PIXEL`: Used if the `.czi` file metadata is missing.
+> **How to check:** In ImageJ/Fiji, open an image and go to **Image > Properties > Pixel width**.
+
+
+* `CHANNEL_CELL_INDEX`: The channel index (starting from 0) containing the cell signal.
+* `NUM_INTERMEDIATE_FRAMES`: Number of frames to extract *between* the first and last image. (e.g., 5 frames results in 7 total images per timelapse).
+
+### Cellpose Model Settings
+
+* `USE_CUSTOM_CELLPOSE_MODEL`: Set to `True` to use a self-trained model.
+* `CUSTOM_MODEL_FILENAME`: The filename of your model (placed in the `Models/` folder).
+* `BUILTIN_MODEL_NAME`: The Cellpose model to use (default is `cyto3`).
+* `CELLPOSE_DIAMETER`: Expected average cell diameter in pixels.
+
+### Tracking Settings
+
+* `MAX_TRACKING_DISTANCE_PX`: The maximum distance (in pixels) a cell can move between sampled frames to be considered the same cell.
+
+### Overlay Settings
+
+* `SAVE_TRACKED_OVERLAYS`: Enables/disables the generation of visual validation images.
+* `OVERLAY_OPACITY`: Transparency of the mask colors (0.0 to 1.0). High-contrast HSV colors are used to ensure cell IDs are visually distinct.
+
+### Border Filtering Settings
+
+* `REMOVE_BORDER_OBJECTS`: If `True`, cells touching the image edges are removed to prevent inaccurate area calculations.
+* `BORDER_MARGIN_PX`: The width of the "danger zone" at the edge of the image where cells will be deleted.
+
+## 5. Running the Pipeline
+
+Before running, ensure you have updated the `TARGET_EXP_FOLDER` in `config.py`.
+
+### **Windows**
+
+* **Method:** Double-click `run_pipeline.bat` inside the `Scripts` folder.
+* A black command window will open, showing you the progress of the conversion, tracking, and plotting.
+
+### **macOS / Linux**
+
+* **Method:** While you *can* sometimes configure these systems to run scripts on double-click, it is **highly recommended** to run it via the Terminal so you can see the progress and any errors:
+1. Open Terminal.
+2. Type `cd` followed by a space, then drag your `Scripts` folder into the window and hit Enter.
+3. Run the script by typing:
+```bash
+./run_pipeline.sh
+```
+
+## 6. Outputs
+
+Results are saved in `Processed_Data/YYYYMMDD_Timelapse/`:
+
+1. `1_tif_images/`: Raw extracted frames.
+2. `2_masks/`: Raw segmentation masks.
+3. `3_tracked_masks/`: Masks where cell IDs are consistent across time.
+4. `4_results/`: CSV data and expansion plots.
+5. `5_tracked_overlays/`: Quality control images with colored overlays.
