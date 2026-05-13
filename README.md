@@ -22,7 +22,7 @@ This project is broken down into five distinct automated steps. When you run the
 * **What it does:** Creates human-readable images to prove that the AI segmented and tracked the cells correctly. 
 * **Under the hood:** Overlays the AI-generated masks onto the original microscope images. It uses a mathematical color generator to assign high-contrast colors to specific cell IDs. Because of the tracking in Step 3, a cell will maintain the exact same color across the entire timelapse, allowing you to easily spot-check the accuracy.
 
-![alt text](Standard_Media_0kV_202609202934-01_F00_overlay.tif)
+<center><img src="https://i.imgur.com/zh1naCW.png" width="100%"></center>
 
 **Step 5: Statistical Plotting (`5_plot_expansion.py`)**
 * **What it does:** Automatically graphs the results from the `.csv` files.
