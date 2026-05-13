@@ -1,0 +1,2 @@
+This file exists only to keep the folder structure intact.
+You can safely delete it once you add your own data.
