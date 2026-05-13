@@ -2,7 +2,33 @@
 
 This automated pipeline processes raw CZI microscopy data to extract frames, segment cells using Cellpose, track individual cells across a timelapse, and plot their physical expansion.
 
-## 1. Project Folder Structure
+## 1. Pipeline Overview: How It Works
+
+This project is broken down into five distinct automated steps. When you run the pipeline, it executes the following scripts in order:
+
+**Step 1: Data Extraction (`1_convert_czi.py`)**
+* **What it does:** Reads proprietary Zeiss `.czi` microscopy files. Instead of processing every single frame of a massive timelapse, it extracts a user-defined number of frames (e.g., the very first frame, the last frame, and evenly spaced intermediate frames). 
+* **Under the hood:** Uses `aicspylibczi` to read the files. It automatically reads the internal XML metadata to find the exact hardware scaling (µm per pixel) and parses your folder names to log the biological conditions (Voltage and Media). Outputs standard `.tif` images.
+
+**Step 2: AI Cell Segmentation (`2_segment_cellpose.py`)**
+* **What it does:** Identifies the exact boundaries of every single cell in every extracted frame.
+* **Under the hood:** Uses **Cellpose**, a state-of-the-art deep learning algorithm for cellular image segmentation. It generates black-and-white integer masks where every detected cell is assigned a unique pixel value. It also includes a filtering step (using `scikit-image`) to delete any cells touching the edge of the image, ensuring no partially-cut-off cells ruin the final area statistics.
+
+**Step 3: Tracking & Area Analysis (`3_analyze_tracking.py`)**
+* **What it does:** Links the cells across time. It figures out which cell in Frame 1 corresponds to which cell in Frame 2, Frame 3, etc., and calculates how much they expanded or shrank.
+* **Under the hood:** Uses `scipy` to calculate the spatial distance between cell centroids across consecutive frames. If a cell remains within a defined physical radius (`MAX_TRACKING_DISTANCE_PX`), it is logged as the same cell. The script then applies the hardware scaling metadata to calculate the exact physical area (in µm²) at the beginning and end of the timelapse, outputting `.csv` spreadsheets.
+
+**Step 4: Visual Validation (`4_generate_overlays.py`)**
+* **What it does:** Creates human-readable images to prove that the AI segmented and tracked the cells correctly. 
+* **Under the hood:** Overlays the AI-generated masks onto the original microscope images. It uses a mathematical color generator to assign high-contrast colors to specific cell IDs. Because of the tracking in Step 3, a cell will maintain the exact same color across the entire timelapse, allowing you to easily spot-check the accuracy.
+
+**Step 5: Statistical Plotting (`5_plot_expansion.py`)**
+* **What it does:** Automatically graphs the results from the `.csv` files. (This part is just a proof of concept, can be modified to make different plots if needed.)
+* **Under the hood:** Uses `pandas`, `matplotlib`, and `seaborn` to generate grouped statistical plots. It creates both image-level average bar charts (showing standard deviation) and single-cell violin plots to show the full distribution of expansion behaviors grouped by Voltage and Media.
+
+---
+
+## 2. Project Folder Structure
 
 Ensure your project is organized as follows:
 
@@ -18,38 +44,32 @@ Cell_Expansion_Tracker/
     ├── config.py
     ├── 0_run_pipeline.py
     ├── ... (other scripts)
-
 ```
-## 2. One-Time Setup and Installation
 
-This pipeline requires **Miniconda** (a lightweight version of Python and the Conda package manager) to manage the necessary biological imaging libraries.
+## 3. One-Time Setup and Installation
+
+This pipeline requires **Miniconda** (a lightweight version of Python and the Conda package manager) to manage the necessary biological imaging libraries safely.
 
 ### Step 1: Install Miniconda
 
 #### **For Windows:**
 
-1. Download the **Miniconda Windows 64-bit installer** from the [Official Download Page](https://docs.conda.io/en/latest/miniconda.html).
+1. Download the latest **Miniconda Windows 64-bit installer** (`Miniconda3-latest-Windows-x86_64.exe`) from the [Official Download Page](https://repo.anaconda.com/miniconda/).
 2. Run the `.exe` installer.
 3. **Important:** During installation, it is highly recommended to check the box **"Add Miniconda3 to my PATH environment variable"**. This allows the `.bat` launcher to find Python automatically.
 4. If you did NOT add it to PATH, you must run all commands via the **"Anaconda Prompt"** found in your Start Menu.
 
 #### **For macOS / Linux:**
 
-1. Download the **Miniconda installer script** (`.sh` file) for your architecture (Intel or Apple M-series).
+1. Download the **Miniconda installer script** (`.sh` file) from the [Official Download Page](https://repo.anaconda.com/miniconda/) for your architecture (Intel (`Miniconda3-latest-MacOSX-x86_64.sh`) or Apple M-series (`Miniconda3-latest-MacOSX-arm64.sh`)). You can confirm which architecture your Mac uses by navigating to the **Apple Menu > About This Mac**. If it lists *Apple M1 / M2 /M3*, you are using **ARM64**, if it lists *Intel*, you are using **x86_64** architecture.
 2. Open your Terminal and navigate to your Downloads folder:
 ```bash
 cd ~/Downloads
 ```
-
-
-
-
 3. Run the installer script:
-
 ```bash
 bash Miniconda3-latest-MacOSX-arm64.sh  # (Example filename)
 ```
-
 4. Follow the prompts. When asked "Do you wish the installer to initialize Miniconda3?", type **yes**.
 5. Restart your Terminal for the changes to take effect.
 
@@ -66,8 +86,6 @@ Once Miniconda is installed, you need to install the specific libraries (Cellpos
 ```cmd
 cd /d C:\Path\To\Your\Cell_Expansion_Tracker\Scripts
 ```
-
-
 3. Create the environment:
 ```cmd
 conda env create -f environment.yml
@@ -80,22 +98,16 @@ conda env create -f environment.yml
 ```bash
 cd ~/Path/To/Your/Cell_Expansion_Tracker/Scripts
 ```
-
-
 3. Create the environment:
 ```bash
 conda env create -f environment.yml
 ```
-
-
-
-
 4. Give the launcher script permission to run:
 ```bash
 chmod +x run_pipeline.sh
 ```
 
-## 3. Data Formatting Requirements
+## 4. Data Formatting Requirements
 
 The pipeline automatically reads experimental conditions from your folder names.
 
@@ -112,7 +124,7 @@ The pipeline automatically reads experimental conditions from your folder names.
 
 *Note: The **bolded features are necessary** for the script to correctly extract the experiment date, media type, and voltage.*
 
-## 4. Configuration Variables Guide (`config.py`)
+## 5. Configuration Variables Guide (`config.py`)
 
 All settings are managed in `Scripts/config.py`. Below is an explanation of every parameter.
 
@@ -125,16 +137,12 @@ All settings are managed in `Scripts/config.py`. Below is an explanation of ever
 
 * `MEDIA_CONDITIONS`: A dictionary mapping folder keywords to readable labels.
 * *Example*: `"sn": "Supplemented_Media"` means any folder containing "sn" will be labeled "Supplemented Media" in results.
-
-
 * `DEFAULT_MEDIA_NAME`: The label used if no keywords from `MEDIA_CONDITIONS` are found in the folder path.
 
 ### Microscopy Settings
 
-* `FALLBACK_MICRONS_PER_PIXEL`: Used if the `.czi` file metadata is missing.
+* `FALLBACK_MICRONS_PER_PIXEL`: Used if the `.czi` file metadata is missing or corrupted.
 > **How to check:** In ImageJ/Fiji, open an image and go to **Image > Properties > Pixel width**.
-
-
 * `CHANNEL_CELL_INDEX`: The channel index (starting from 0) containing the cell signal.
 * `NUM_INTERMEDIATE_FRAMES`: Number of frames to extract *between* the first and last image. (e.g., 5 frames results in 7 total images per timelapse).
 
@@ -159,7 +167,7 @@ All settings are managed in `Scripts/config.py`. Below is an explanation of ever
 * `REMOVE_BORDER_OBJECTS`: If `True`, cells touching the image edges are removed to prevent inaccurate area calculations.
 * `BORDER_MARGIN_PX`: The width of the "danger zone" at the edge of the image where cells will be deleted.
 
-## 5. Running the Pipeline
+## 6. Running the Pipeline
 
 Before running, ensure you have updated the `TARGET_EXP_FOLDER` in `config.py`.
 
@@ -178,7 +186,7 @@ Before running, ensure you have updated the `TARGET_EXP_FOLDER` in `config.py`.
 ./run_pipeline.sh
 ```
 
-## 6. Outputs
+## 7. Outputs
 
 Results are saved in `Processed_Data/YYYYMMDD_Timelapse/`:
 
