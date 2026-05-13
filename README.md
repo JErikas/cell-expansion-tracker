@@ -36,8 +36,8 @@ This project is broken down into five distinct automated steps. When you run the
 * **Under the hood:** Uses `pandas`, `matplotlib`, and `seaborn` to generate grouped statistical plots. It creates both image-level average bar charts (showing standard deviation) and single-cell violin plots to show the full distribution of expansion behaviors grouped by Voltage and Media.
 
 <p float="left">
-  <img src="https://i.imgur.com/aK7N3Ks.png" height="50%" />
-  <img src="https://i.imgur.com/VDGIvzJ.png" height="50%" /> 
+  <img align="middle" src="https://i.imgur.com/aK7N3Ks.png" width="49%" />
+  <img align="middle" src="https://i.imgur.com/VDGIvzJ.png" width="50%" /> 
   <p align="middle">
 </p>
 
