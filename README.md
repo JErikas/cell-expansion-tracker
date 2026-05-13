@@ -18,6 +18,13 @@ This project is broken down into five distinct automated steps. When you run the
 * **What it does:** Links the cells across time. It figures out which cell in Frame 1 corresponds to which cell in Frame 2, Frame 3, etc., and calculates how much they expanded or shrank.
 * **Under the hood:** Uses `scipy` to calculate the spatial distance between cell centroids across consecutive frames. If a cell remains within a defined physical radius (`MAX_TRACKING_DISTANCE_PX`), it is logged as the same cell. The script then applies the hardware scaling metadata to calculate the exact physical area (in µm²) at the beginning and end of the timelapse, outputting `.csv` spreadsheets.
 
+*Single Cell Tracking*
+<center><img src="https://i.imgur.com/6EgLEif.png" width="100%"></center>
+
+*Image Averages*
+<center><img src="https://i.imgur.com/0W95d9s.png" width="100%"></center>
+
+
 **Step 4: Visual Validation (`4_generate_overlays.py`)**
 * **What it does:** Creates human-readable images to prove that the AI segmented and tracked the cells correctly. 
 * **Under the hood:** Overlays the AI-generated masks onto the original microscope images. It uses a mathematical color generator to assign high-contrast colors to specific cell IDs. Because of the tracking in Step 3, a cell will maintain the exact same color across the entire timelapse, allowing you to easily spot-check the accuracy.
@@ -27,6 +34,12 @@ This project is broken down into five distinct automated steps. When you run the
 **Step 5: Statistical Plotting (`5_plot_expansion.py`)**
 * **What it does:** Automatically graphs the results from the `.csv` files.
 * **Under the hood:** Uses `pandas`, `matplotlib`, and `seaborn` to generate grouped statistical plots. It creates both image-level average bar charts (showing standard deviation) and single-cell violin plots to show the full distribution of expansion behaviors grouped by Voltage and Media.
+
+<p float="left">
+  <img src="https://i.imgur.com/aK7N3Ks.png" height="50%" />
+  <img src="https://i.imgur.com/VDGIvzJ.png" height="50%" /> 
+  <p align="middle">
+</p>
 
 ---
 
