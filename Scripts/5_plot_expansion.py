@@ -8,7 +8,7 @@ import config
 def run():
 
     date_prefix = config.TARGET_EXP_FOLDER[:10].replace("-", "")
-    results_dir = Path(config.PROCESSED_DATA_DIR) / f"{date_prefix}_Timelapse" / "4_results"
+    results_dir = Path(config.PROCESSED_DATA_DIR) / f"{date_prefix}_Timelapse" / "3_results"
 
     avg_csv = results_dir / f"{date_prefix}_Image_Averages.csv"
     cell_csv = results_dir / f"{date_prefix}_Single_Cells_Tracking.csv"

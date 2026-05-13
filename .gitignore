@@ -1,11 +1,16 @@
-# Ignore heavy data folders
-Raw_Data/
-Processed_Data/
-Models/
+# 1. Ignore everything in these folders
+Raw_Data/*
+Processed_Data/*
+Models/*
+
+# 2. BUT do NOT ignore the specific placeholder files
+!Raw_Data/DELETE_THIS_FILE.txt
+!Processed_Data/DELETE_THIS_FILE.txt
+!Models/DELETE_THIS_FILE.txt
 
 # Ignore Python cache files
 __pycache__/
 *.pyc
 
-# Ignore Mac system files (if you use Mac)
+# Ignore Mac system files
 .DS_Store

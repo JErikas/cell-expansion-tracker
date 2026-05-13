@@ -22,10 +22,9 @@ class Logger(object):
     def flush(self):
         pass
 
-def parse_mask_name(mask_path):
-    stem = mask_path.stem
+def parse_seg_name(seg_path):
+    stem = seg_path.name.replace("_seg.npy", "")
     
-    # 1. Dynamically match the media prefix based on config
     media = None
     all_media_labels = list(config.MEDIA_CONDITIONS.values()) + [config.DEFAULT_MEDIA_NAME]
     for label in all_media_labels:
@@ -35,25 +34,17 @@ def parse_mask_name(mask_path):
             
     if not media: return None
     
-    # Slice off the media part to isolate voltage and filename
-    # Example rest: "1.5kV_my_image_01_F00_mask"
     rest = stem[len(media)+1:]
-    
-    # 2. Extract Voltage (must be at the beginning of 'rest')
     v_match = re.search(r'^([0-9.]+kV)_', rest)
     if not v_match: return None
     voltage_str = v_match.group(1)
     voltage = float(voltage_str.replace("kV", ""))
     
-    # Slice off the voltage part
     rest = rest[len(voltage_str)+1:]
-    
-    # 3. Extract Frame Number from the very end
-    f_match = re.search(r'_F(\d{2})_mask$', rest)
+    f_match = re.search(r'_F(\d{2})$', rest)
     if not f_match: return None
     frame = int(f_match.group(1))
     
-    # 4. Whatever is left in the middle is the original filename (imgid)
     imgid = rest[:f_match.start()]
     
     return {
@@ -64,7 +55,7 @@ def parse_mask_name(mask_path):
     }
 
 def sequential_tracking(frame_masks):
-    tracked_masks = []
+    tracked_masks =[]
     props0 = regionprops(frame_masks[0])
     tracks = {}
     relabeled0 = np.zeros_like(frame_masks[0], dtype=np.uint16)
@@ -96,7 +87,7 @@ def sequential_tracking(frame_masks):
         next_centroids = np.array([p.centroid for p in props_next])
         dists = cdist(current_centroids, next_centroids)
 
-        candidate_pairs = []
+        candidate_pairs =[]
         for i in range(dists.shape[0]):
             for j in range(dists.shape[1]):
                 candidate_pairs.append((dists[i, j], i, j))
@@ -122,7 +113,6 @@ def sequential_tracking(frame_masks):
                 "initial_area": tracks[track_id]["initial_area"],
                 "latest_area": prop.area
             }
-
             used_tracks.add(i)
             used_next.add(j)
 
@@ -134,12 +124,13 @@ def sequential_tracking(frame_masks):
 def run():
     date_prefix = config.TARGET_EXP_FOLDER[:10].replace("-", "")
     output_dir = Path(config.PROCESSED_DATA_DIR) / f"{date_prefix}_Timelapse"
-    dir_masks = output_dir / "2_masks"
-
-    dir_tracked_masks = output_dir / "3_tracked_masks"
+    
+    dir_images_seg = output_dir / "1_images_and_segmentation"
+    
+    dir_tracked_masks = output_dir / "2_tracked_masks"
     dir_tracked_masks.mkdir(parents=True, exist_ok=True)
 
-    dir_results = output_dir / "4_results"
+    dir_results = output_dir / "3_results"
     dir_results.mkdir(parents=True, exist_ok=True)
 
     sys.stdout = Logger(output_dir / "Log_Tracking.txt")
@@ -152,31 +143,32 @@ def run():
         with open(scaling_file, "r") as f:
             scaling_dict = json.load(f)
 
-    mask_files = sorted(dir_masks.glob("*_mask.tif"))
+    # Read .npy files out of the unified folder
+    mask_files = sorted(dir_images_seg.glob("*_seg.npy"))
     groups = {}
 
     for p in mask_files:
-        parsed = parse_mask_name(p)
+        parsed = parse_seg_name(p)
         if parsed is None:
             continue
-
         key = (parsed["media"], parsed["voltage"], parsed["imgid"])
         if key not in groups:
             groups[key] = []
         groups[key].append((parsed["frame"], p))
 
     single_cell_data = []
-    image_average_data = []
+    image_average_data =[]
 
     for (media, voltage, imgid), items in tqdm(groups.items(), desc="Tracking"):
         items = sorted(items, key=lambda x: x[0])
-        frame_masks = []
-        original_names = []
+        frame_masks =[]
+        original_names =[]
 
         for frame_num, path in items:
-            mask = tifffile.imread(path)
+            seg_data = np.load(path, allow_pickle=True).item()
+            mask = seg_data['masks']
             frame_masks.append(mask)
-            original_names.append(path.stem.replace("_mask", ""))
+            original_names.append(path.name.replace("_seg.npy", ""))
 
         tif_key = f"{original_names[0]}.tif"
         mpp = scaling_dict.get(tif_key, config.FALLBACK_MICRONS_PER_PIXEL)
@@ -196,9 +188,9 @@ def run():
             )
 
         img_area_t0 = []
-        img_area_tf = []
+        img_area_tf =[]
         img_delta = []
-        img_pct = []
+        img_pct =[]
 
         for track_id, data in final_tracks.items():
             area_t0 = data["initial_area"] * (mpp ** 2)

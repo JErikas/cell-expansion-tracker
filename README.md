@@ -23,7 +23,7 @@ This project is broken down into five distinct automated steps. When you run the
 * **Under the hood:** Overlays the AI-generated masks onto the original microscope images. It uses a mathematical color generator to assign high-contrast colors to specific cell IDs. Because of the tracking in Step 3, a cell will maintain the exact same color across the entire timelapse, allowing you to easily spot-check the accuracy.
 
 **Step 5: Statistical Plotting (`5_plot_expansion.py`)**
-* **What it does:** Automatically graphs the results from the `.csv` files. (This part is just a proof of concept, can be modified to make different plots if needed.)
+* **What it does:** Automatically graphs the results from the `.csv` files.
 * **Under the hood:** Uses `pandas`, `matplotlib`, and `seaborn` to generate grouped statistical plots. It creates both image-level average bar charts (showing standard deviation) and single-cell violin plots to show the full distribution of expansion behaviors grouped by Voltage and Media.
 
 ---
@@ -153,8 +153,8 @@ All settings are managed in `Scripts/config.py`. Below is an explanation of ever
 * `BUILTIN_MODEL_NAME`: The Cellpose model to use (default is `cyto3`).
 * `CELLPOSE_DIAMETER`: Expected average cell diameter in pixels.
 
-### Tracking Settings
-
+### Manual Correction & Tracking Settings
+* `PAUSE_FOR_MANUAL_CORRECTION`: Set to `True` to pause the pipeline after segmentation so you can fix masks by hand in the Cellpose GUI before tracking starts.
 * `MAX_TRACKING_DISTANCE_PX`: The maximum distance (in pixels) a cell can move between sampled frames to be considered the same cell.
 
 ### Overlay Settings
@@ -186,12 +186,29 @@ Before running, ensure you have updated the `TARGET_EXP_FOLDER` in `config.py`.
 ./run_pipeline.sh
 ```
 
-## 7. Outputs
+## 7. Manual Mask Correction Workflow
 
-Results are saved in `Processed_Data/YYYYMMDD_Timelapse/`:
+If you notice Cellpose is occasionally making mistakes (e.g., merging two cells together, or missing a cell), you can correct the masks by hand before the pipeline calculates the cell tracking data.
 
-1. `1_tif_images/`: Raw extracted frames.
-2. `2_masks/`: Raw segmentation masks.
-3. `3_tracked_masks/`: Masks where cell IDs are consistent across time.
-4. `4_results/`: CSV data and expansion plots.
-5. `5_tracked_overlays/`: Quality control images with colored overlays.
+1. Open `config.py` and set `PAUSE_FOR_MANUAL_CORRECTION = True`.
+2. Run `run_pipeline`. After segmentation finishes, the terminal will pause.
+3. Leave the pipeline terminal open. Go to your `Scripts` folder and **double-click `launch_gui.bat`** (Windows) or run **`launch_gui.sh`** (Mac/Linux). This will open the Cellpose interface automatically.
+4. In the Cellpose Window:
+   * Navigate to `Processed_Data/.../1_images_and_segmentation/`.
+   * **Drag and drop the `.tif` IMAGE or `.npy` SEGMENTATION files** directly into the Cellpose window. 
+   * *Note: You need to drag only one of them. Because when both files are in the same folder, Cellpose will automatically load the image from the `.tif` and overlay the editable masks from the `.npy` file.*
+5. Use your mouse to correct the cells:
+   * **To DELETE an incorrect mask:** Hold **CTRL (or COMMAND on Mac) + Left-Click** on it.
+   * **To TRACE a missing cell:** **Right-Click** and draw the outline, joining the trace at the start point to finish it.
+   * **CTRL + S** (or CMD + S) to save your changes. This updates the `.npy` file in the folder.
+6. **Pro Tip for Speed:** You do not need to drag and drop every file! Once the first image is open, **Left-Click** anywhere on the image to focus the window, then use the **Left and Right Arrow Keys** on your keyboard to instantly scroll through all the images in the folder. 
+7. Close the GUI, return to the original paused pipeline terminal window and **press ENTER**. The pipeline will immediately resume and accurately track your hand-corrected masks
+
+## 8. Outputs
+
+Results are saved in `Processed_Data/YYYYMMDD_Timelapse/`. To keep data organized, the pipeline condenses everything into 4 clean folders:
+
+1. `1_images_and_segmentation/`: Contains your raw extracted `.tif` frames alongside the editable `_seg.npy` Cellpose files.
+2. `2_tracked_masks/`: Clean 16-bit `.tif` masks where cell IDs are mathematically linked across time. 
+3. `3_results/`: CSV data spreadsheets and automatically generated expansion plots.
+4. `4_tracked_overlays/`: High-contrast quality control images with colored masks overlaid on the cells.

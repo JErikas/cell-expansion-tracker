@@ -60,3 +60,10 @@ OVERLAY_OPACITY = 0.35
 # =======================
 REMOVE_BORDER_OBJECTS = True
 BORDER_MARGIN_PX = 10
+
+# =======================
+# MANUAL CORRECTION
+# =======================
+# Set to True to pause the pipeline after segmentation. 
+# This allows you to manually correct masks before the tracking step begins.
+PAUSE_FOR_MANUAL_CORRECTION = True
